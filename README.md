@@ -59,7 +59,7 @@
 
 ## 技術
 
-- **語言 / 框架**：JavaScript、React 18、Vite 5；桌面殼用 Electron 30，行動殼用 Capacitor 8（Android），語音辨識的原生插件用 Java 撰寫
+- **語言 / 框架**：JavaScript、React 18、Vite 8；桌面殼用 Electron 44，行動殼用 Capacitor 8（Android），語音辨識的原生插件用 Java 撰寫
 - **語音辨識**：sherpa-onnx 1.13.8（中文串流 Zipformer CTC int8 小模型）
   - 桌面：AudioWorklet 擷取 16kHz 音訊 → IPC → 主進程以 `worker_threads` 執行 `sherpa-onnx-node`
   - Android：`AudioRecord` → 自製 Capacitor 插件 `SherpaAsrPlugin`（sherpa-onnx AAR）→ `notifyListeners` 回傳給前端
@@ -73,8 +73,9 @@
 - **型別提示**：專案沒有 TypeScript 工具鏈，匯出函式和 React 元件用 JSDoc 標註，再用 tsc 的 strictNullChecks 檢查
 - **架構**：平台適配層（electron / capacitor / web 三份實作），UI 只呼叫這一層
 - **資料庫**：SQLite（桌面 knex + better-sqlite3；Android @capacitor-community/sqlite），兩邊共用 migration SQL
+- **錯誤報告**：GlitchTip（相容 Sentry SDK，免費方案），只有 Android；不送使用者身分、不錄畫面、不追蹤效能，console 紀錄一律不送（可能含辨識文字）；系統狀態頁可以關閉
 - **測試**：Node 內建 test runner（`node --test`）測提示引擎、比對規則、水聲判斷規則與環境音校正流程（共 56 項）；切丁大小的合成照片測試，以及實拍照片回歸測試（已知問題標成 todo）；實量對照腳本；題庫 JSON 驗證腳本；WAV 音檔辨識測試；App 內建語音辨識效能測試（RTF）與環境音監測面板（可同時錄 WAV 和紀錄檔，供離線分析）
-- **開發環境 / CI**：開發和建置全部在 Docker 容器裡（網頁遠端桌面、Node 22、JDK 21、Android SDK 36），npm 套件在映像檔建置時安裝，新電腦 clone 後一個指令就能啟動；容器內可打包 Linux（AppImage、deb）、Windows（Wine 交叉打包）與 Android；GitHub Actions 推送標籤時打包 macOS dmg
+- **開發環境 / CI**：開發和建置全部在 Docker 容器裡（網頁遠端桌面、Node 22、JDK 21、Android SDK 36），npm 套件在映像檔建置時安裝，新電腦 clone 後一個指令就能啟動；容器內可打包 Linux（AppImage、deb）、Windows（Wine 交叉打包，含語音辨識）與 Android；GitHub Actions 推送標籤時打包 macOS dmg
 - **商店素材**：Python（Pillow）腳本從 logo 產生 Play 圖示與 Android 各密度的桌面圖示（adaptive icon）
 
 ### 語音辨識流程
@@ -173,6 +174,21 @@ Android：麥克風 → AudioRecord（16kHz）→ SherpaAsrPlugin（sherpa-onnx�
 - **上架素材的規格跟手邊的檔案對不上**
   → logo 是白底圓角、不是正方形；手機截圖是 2.28:1，超過 Play 的 2:1 上限。圖示用腳本裁掉外框、補成方形，再產生各密度的桌面圖示；截圖裁掉狀態列與導覽列，左右補邊到 2:1。
 
+- **錯誤報告送不出去**
+  → @sentry/capacitor 和 @sentry/react 的核心版本不同時，畫面出錯會交給沒有初始化的那一份，錯誤就送不出去，所以兩個套件鎖定成同一個核心版本。另外 GlitchTip 不支援 Sentry 的 sessions，要把 SDK 的 session 追蹤關掉。
+
+- **建置工具（Electron 30、electron-builder 24、Vite 5）有已知漏洞**
+  → 一次升級到 Electron 44、electron-builder 26、Vite 8，npm audit 從 15 個降到 3 個。剩下的 3 個來自 Capacitor CLI 間接用到的 uuid，只有 iOS 會用到，而且呼叫的函式碰不到漏洞。better-sqlite3 升到 13 之後改用 N-API，套件內附各平台的預編譯檔，不用再針對 Electron 重新編譯；原本在 Linux 上替 Windows 編譯原生模組會失敗，也一起解決了。Vite 8 改用 Rolldown 打包，前端建置從 3～4 分鐘縮短到 1 分鐘以內。
+
+- **Windows 安裝檔裡沒有語音辨識模組**
+  → npm 只安裝跟目前系統相符的平台套件，在 Linux 容器裡打包 Windows 版時，只有 Linux 版的 sherpa-onnx。改用 `npm pack` 另外取得 Windows 版放進 node_modules，打包時各平台排除另一個平台的套件。中間踩到一個雷：平台設定的 `files` 只寫排除規則時，electron-builder 會自動補上「全部檔案」，把整個專案（3.4 GB）打包進去，加一行一定會打包的檔案就解決了。
+
+- **容器裡下載 Windows 版 Electron（150 MB）一直逾時**
+  → electron-builder 自己下載時，單次連線超過 10 分鐘就中斷，而且不能續傳；容器裡只有每秒 50～75 KB。改用 curl 下載（可以續傳、比對 SHA-256），放在重建容器也會保留的資料夾，打包時指定使用這個檔案。
+
+- **升級後打包在 Mac 掛進容器的資料夾裡失敗（Unable to update lock）**
+  → 新版 electron-builder 解壓 Electron 時會加檔案鎖，用檔案的修改時間判斷鎖是否還有效，在 Mac 掛進容器的資料夾裡會被判定失效。改成先輸出到容器內的 /tmp，再把安裝檔複製回專案資料夾。
+
 ## 目前狀態
 
 - Android 版已在實機上驗證即時辨識、自動推進與步驟轉輪。
@@ -182,4 +198,7 @@ Android：麥克風 → AudioRecord（16kHz）→ SherpaAsrPlugin（sherpa-onnx�
   - 待確認：自動判斷比例尺在手機上的耗時、「選照片」（通訊軟體壓縮過的照片、HEIC 格式）、桌面版
   - 已知問題：塑膠袋皺褶被當成尺、整條邊貼在一起的丁切不開、小丁偏大約 1 mm
 - 準備上架 Google Play：版本 1.0.7、套件名稱 io.github.kkker.carepass，圖示、主視覺圖、截圖已備齊；接下來是 release 簽署產出 AAB，以及封閉測試（12 位測試者、連續 14 天）。
-- 尚未完成：設定存進 SQLite 與設定頁、練習紀錄存檔、正式版隱藏開發用功能、iOS 版與瀏覽器版語音辨識、Windows 安裝檔帶入語音辨識模組、升級建置工具。
+- 錯誤報告（Android）：實機確認 GlitchTip 收得到錯誤與操作紀錄；測試期間預設開啟，正式上架前改成預設關閉。
+- 規劃中：廣告（橫幅廣告、查看練習總報告前播放短影片廣告）與使用行為分析；加入時會一併更新隱私權政策與 Google Play 的資料安全性申報。
+- 桌面版：Windows 安裝檔已帶入語音辨識，Windows 筆電實測可以使用（辨識、收音與自動推進）。
+- 尚未完成：設定存進 SQLite 與設定頁、練習紀錄存檔、正式版隱藏開發用功能、iOS 版與瀏覽器版語音辨識。
