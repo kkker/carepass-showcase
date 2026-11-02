@@ -9,24 +9,22 @@
 
 <table>
   <tr>
-    <td align="center"><img src="images/phone-1.png" width="240" alt="練習步驟"></td>
+    <td align="center"><img src="images/phone-1.png" width="240" alt="選題號與子題"></td>
+    <td align="center"><img src="images/phone-2.png" width="240" alt="練習步驟"></td>
     <td align="center"><img src="images/phone-3.png" width="240" alt="練習結果"></td>
+  </tr>
+  <tr>
+    <td align="center">選題號、複選子題並決定練習順序</td>
+    <td align="center">練習步驟：大字提示、收音與手動確認</td>
+    <td align="center">練習結果：每一步的完成方式（語音、手動、口令、略過）與秒數</td>
+  </tr>
+  <tr>
     <td align="center"><img src="images/phone-4.png" width="240" alt="切丁大小的拍照規範"></td>
+    <td align="center"><img src="images/phone-5.png" width="240" alt="標註圖與自動判斷比例尺"></td>
   </tr>
   <tr>
-    <td align="center">練習步驟：步驟轉輪、口述與關鍵字、不給分提醒</td>
-    <td align="center">練習結果：每一步的完成方式（語音、手動、略過）與秒數</td>
     <td align="center">切丁大小：拍照規範（用尺、用硬幣的俯視示意圖）</td>
-  </tr>
-  <tr>
-    <td align="center"><img src="images/phone-5.png" width="240" alt="自動判斷比例尺"></td>
-    <td align="center"><img src="images/phone-6.png" width="240" alt="標註圖"></td>
-    <td align="center"><img src="images/phone-2.png" width="240" alt="量測結果表"></td>
-  </tr>
-  <tr>
-    <td align="center">拍照後自動判斷比例尺（這張是 10 元硬幣）</td>
-    <td align="center">標註圖：每顆丁的編號與框線</td>
-    <td align="center">量測結果：最長的邊、另一邊、判定</td>
+    <td align="center">標註圖與比例尺自動判斷（這張是 5 元硬幣）</td>
   </tr>
 </table>
 
@@ -45,6 +43,8 @@
   - 模型輸出簡體，先轉繁體再比對
   - 台詞較長、辨識常漏掉其中一個關鍵字的步驟，聽到任一個關鍵字就算
 - **依考題設計多種觸發規則**：關鍵字全部或任一命中、數數、限時內說話（例如「與嬰兒說話互動」）、累計口述字數、「語音沒聽到就手動確認」，以及操作過程中的次數要求（例如「至少 2 次給予鼓勵」）。
+- **子題複選與排序**：同一題號可以複選子題，先點的先練習，再點一次可以取消，選好後依序練習。
+- **大字介面**：放大字級與按鈕，方便 50 歲以上的考生閱讀與操作。
 - **步驟轉輪**：卡片上方顯示上一步／目前／下一步；手指拖動可以瀏覽各步驟的結果，放開才跳步。往後跳時，中間的步驟記為略過；往前跳可以重做。手機直立時縮小版面，主提示詞放不下時用跑馬燈捲動。
 - **切丁大小拍照量測**：拍一張或選一張照片，量每顆丁最長的邊是否 ≤ 0.5 cm（≤ 5 mm 合格、5～6 mm 邊界、超過 6 mm 超標），並在照片上標出每顆丁的編號和框線。
   - 自動判斷比例尺：照片裡放一把尺（什麼顏色、透明的都可以），或一枚 1、5、10 元硬幣，不需要特製圖卡
@@ -197,7 +197,7 @@ Android：麥克風 → AudioRecord（16kHz）→ SherpaAsrPlugin（sherpa-onnx�
 - 切丁大小：手機實測可以用（一張約 6～9 秒）。
   - 待確認：自動判斷比例尺在手機上的耗時、「選照片」（通訊軟體壓縮過的照片、HEIC 格式）、桌面版
   - 已知問題：塑膠袋皺褶被當成尺、整條邊貼在一起的丁切不開、小丁偏大約 1 mm
-- 準備上架 Google Play：版本 1.0.7、套件名稱 io.github.kkker.carepass，圖示、主視覺圖、截圖已備齊；接下來是 release 簽署產出 AAB，以及封閉測試（12 位測試者、連續 14 天）。
+- 準備上架 Google Play：版本 1.0.9、套件名稱 io.github.kkker.carepass，圖示、主視覺圖、截圖已備齊；接下來是 release 簽署產出 AAB，以及封閉測試（12 位測試者、連續 14 天）。
 - 錯誤報告（Android）：實機確認 GlitchTip 收得到錯誤與操作紀錄；測試期間預設開啟，正式上架前改成預設關閉。
 - 規劃中：廣告（橫幅廣告、查看練習總報告前播放短影片廣告）與使用行為分析；加入時會一併更新隱私權政策與 Google Play 的資料安全性申報。
 - 桌面版：Windows 安裝檔已帶入語音辨識，Windows 筆電實測可以使用（辨識、收音與自動推進）。
